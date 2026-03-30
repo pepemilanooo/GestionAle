@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("hopper.proxy.rlwy.net:14265")
 }
 
 enum UserRole {
