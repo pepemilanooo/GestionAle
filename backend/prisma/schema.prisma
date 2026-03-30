@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TECHNICIAN
+}
+
+enum ClientType {
+  PRIVATO
+  CONDOMINIO
+  AZIENDA
+  RISTORANTE
+  HOTEL
+  NEGOZIO
+  INDUSTRIA
+  PA
+  ALTRO
+}
+
+enum JobStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TrapType {
+  RAT_BAIT_STATION
+  GLUE_BOARD
+  UV_LIGHT
+  MECHANICAL_SNAP
+  PHEROMONE_TRAP
+}
+
+enum TrapStatus {
+  OK
+  DAMAGED
+  MISSING
+  REPLACED
+  TRIGGERED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  phone         String?
+  role          UserRole       @default(TECHNICIAN)
+  isActive      Boolean        @default(true)
+  interventions Intervention[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Client {
+  id          String     @id @default(cuid())
+  name        String
+  type        ClientType
+  email       String?
+  phone       String?
+  vatNumber   String?
+  notes       String?
+  isActive    Boolean    @default(true)
+  locations   Location[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Location {
+  id             String         @id @default(cuid())
+  clientId       String
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name           String
+  address        String
+  city           String
+  zipCode        String?
+  lat            Float?
+  lng            Float?
+  zones          Zone[]
+  interventions  Intervention[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Zone {
+  id          String   @id @default(cuid())
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  traps       Trap[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Trap {
+  id          String         @id @default(cuid())
+  zoneId      String
+  zone        Zone           @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  code        String         @unique
+  type        TrapType
+  description String?
+  isActive    Boolean        @default(true)
+  activities  TrapActivity[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Intervention {
+  id             String         @id @default(cuid())
+  locationId     String
+  location       Location       @relation(fields: [locationId], references: [id])
+  technicianId   String
+  technician     User           @relation(fields: [technicianId], references: [id])
+  scheduledAt    DateTime
+  completedAt    DateTime?
+  duration       Int?
+  status         JobStatus      @default(PLANNED)
+  priority       Int            @default(1)
+  notes          String?
+  signatureUrl   String?
+  productUsages  ProductUsage[]
+  trapActivities TrapActivity[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Product {
+  id              String         @id @default(cuid())
+  name            String
+  activePrinciple String
+  registrationNum String
+  stock           Float          @default(0)
+  minStock        Float          @default(10)
+  unit            String
+  category        String?
+  targetPests     String[]
+  usages          ProductUsage[]
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model ProductUsage {
+  id             String       @id @default(cuid())
+  interventionId String
+  intervention   Intervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id])
+  quantity       Float
+  notes          String?
+  createdAt      DateTime     @default(now())
+}
+
+model TrapActivity {
+  id             String       @id @default(cuid())
+  interventionId String
+  intervention   Intervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+  trapId         String
+  trap           Trap         @relation(fields: [trapId], references: [id])
+  status         TrapStatus   @default(OK)
+  findings       String?
+  photoUrl       String?
+  baitCondition  String?
+  baitReplaced   Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
